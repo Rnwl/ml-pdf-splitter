@@ -6,6 +6,9 @@ name = "pypi"
 [packages]
 aiohttp = "==3.9.1"
 pymupdf = "==1.23.7"
+fastapi = "*"
+python-dotenv = "*"
+uvicorn = "*"
 
 [dev-packages]
 
