@@ -19,10 +19,10 @@ image:
   # Docker build arguments. For additional overrides: https://aws.github.io/copilot-cli/docs/manifest/lb-web-service/#image-build
   build: Dockerfile
   # Port exposed through your container to route traffic to it.
-  port: 5005
+  port: 5006
 
-cpu: 256       # Number of CPU units for the task.
-memory: 512    # Amount of memory in MiB used by the task.
+cpu: 256       # Number of CPU units for the task. # 256 is minimum
+memory: 512    # Amount of memory in MiB used by the task. # 512 is minimum
 platform: linux/x86_64  # See https://aws.github.io/copilot-cli/docs/manifest/lb-web-service/#platform
 exec: true     # Enable running commands in your container.
 
@@ -43,41 +43,32 @@ environments:
     count:
       range: 2-20
       cpu_percentage: 85
-      requests: 10
+      requests: 1000
       cooldown:
         in: 60
         out: 120
-    variables:
-      PDF2TEXT_URL : https://9kkfo6mz5e.execute-api.eu-west-2.amazonaws.com/prod/resource
     secrets:
-      OPENAI_API_KEY: /copilot/rnwl-backend-services/prod/secrets/OPENAI_API_KEY
-      EMAIL_ATTACHMENTS_BUCKET: /copilot/rnwl-backend-services/prod/secrets/ML_COVER_SUMMARY_EMAIL_ATTACHMENTS_BUCKET
+      PDF2TXT_LAMBDA_URL : /copilot/rnwl-backend-services/prod/secrets/PDF2TXT_LAMBDA_URL
       PDF2TEXT_API_KEY : /copilot/rnwl-backend-services/prod/secrets/PDF2TEXT_API_KEY
   staging:
     count:
       range: 1-20
       cpu_percentage: 85
-      requests: 10
+      requests: 1000
       cooldown:
         in: 60
         out: 120
-    variables:
-      PDF2TEXT_URL : https://9kkfo6mz5e.execute-api.eu-west-2.amazonaws.com/prod/resource
     secrets:
-      OPENAI_API_KEY: /copilot/rnwl-backend-services/staging/secrets/OPENAI_API_KEY
-      EMAIL_ATTACHMENTS_BUCKET: /copilot/rnwl-backend-services/staging/secrets/ML_COVER_SUMMARY_EMAIL_ATTACHMENTS_BUCKET
+      PDF2TXT_LAMBDA_URL : /copilot/rnwl-backend-services/staging/secrets/PDF2TXT_LAMBDA_URL
       PDF2TEXT_API_KEY : /copilot/rnwl-backend-services/staging/secrets/PDF2TEXT_API_KEY
   test:
     count:
       range: 1-20
       cpu_percentage: 85
-      requests: 10
+      requests: 1000
       cooldown:
         in: 60
         out: 120
-    variables:
-      PDF2TEXT_URL : https://9kkfo6mz5e.execute-api.eu-west-2.amazonaws.com/test/resource
     secrets:
-      OPENAI_API_KEY: /copilot/rnwl-backend-services/test/secrets/OPENAI_API_KEY
-      EMAIL_ATTACHMENTS_BUCKET: /copilot/rnwl-backend-services/test/secrets/ML_COVER_SUMMARY_EMAIL_ATTACHMENTS_BUCKET
+      PDF2TXT_LAMBDA_URL : /copilot/rnwl-backend-services/test/secrets/PDF2TXT_LAMBDA_URL
       PDF2TEXT_API_KEY : /copilot/rnwl-backend-services/test/secrets/PDF2TEXT_API_KEY
