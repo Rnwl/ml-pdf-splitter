@@ -3,23 +3,28 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from io import BytesIO
 from typing import List, Dict, Any
-import os
 from dotenv import load_dotenv
 
-from pdf2text import extract_text_api, split_pdf_bytes
-from utils import load_variable
-from timed_logger import TimedLogger
+try:
+    from pdf2text import extract_text_api, split_pdf_bytes
+    from utils import load_variable
+    from timed_logger import TimedLogger
+except:
+    from src.pdf2text import extract_text_api, split_pdf_bytes
+    from src.utils import load_variable
+    from src.timed_logger import TimedLogger
+
 
 load_dotenv()  # Load environment variables from .env file
 
-app = FastAPI()
+pdf_splitter_app = FastAPI()
 
 timed_logger = TimedLogger(filename="logs/pdf_splitter.log")
 PDF2TEXT_API_KEY = load_variable("PDF2TEXT_API_KEY", logger=timed_logger)
-PDF2TEXT_URL = load_variable("PDF2TEXT_URL", logger=timed_logger)
+PDF2TXT_LAMBDA_URL = load_variable("PDF2TXT_LAMBDA_URL", logger=timed_logger)
 CHUNK_SIZE = 10  # Number of pages per chunk
 
-@app.get("/status")
+@pdf_splitter_app.get("/status")
 async def status_check():
     """
     Simple endpoint to check if the service is running.
@@ -31,7 +36,7 @@ async def status_check():
     return JSONResponse(content={"status": "OK"})
 
 
-@app.get("/lambda_status")
+@pdf_splitter_app.get("/lambda_status")
 async def lambda_status_check():
     """
     Endpoint to check the status of the service.
@@ -41,13 +46,16 @@ async def lambda_status_check():
     """
     try:
         # Check if we can access the PDF extraction API
-        test_pdf = BytesIO(b"%PDF-1.0\n%\xe2\xe3\xcf\xd3\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 3 3]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000018 00000 n\n0000000066 00000 n\n0000000122 00000 n\n\ntrailer\n<</Size 4/Root 1 0 R>>\nstartxref\n149\n%%EOF\n")
-        await extract_text_api(test_pdf, PDF2TEXT_API_KEY, PDF2TEXT_URL)
+        test_pdf = BytesIO(
+            b"%PDF-1.7\n%\xc2\xb5\xc2\xb6\n\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n\n2 0 obj\n<</Type/Pages/Count 1/Kids[4 0 R]>>\nendobj\n\n3 0 obj\n<</Font<</helv 5 0 R>>>>\nendobj\n\n4 0 obj\n<</Type/Page/MediaBox[0 0 595 842]/Rotate 0/Resources 3 0 R/Parent 2 0 R/Contents[6 0 R]>>\nendobj\n\n5 0 obj\n<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>\nendobj\n\n6 0 obj\n<</Length 427/Filter/FlateDecode>>\nstream\nx\xda]S\xbbN\xc4@\x0c\xec\xf3\x15[#\x01\xf1f\xd7f\xa5\x13\x05\x82\x86\x0e)\xdd\x89*\x0fQ@A\xc3\xf73\x1e'\xb9\x83;\xe5\x14\xf91\x9e\x19\xfb\xba\xef\xeei\xec$\xf5\xf8J\xb2\x9c\xcc\xfa4~u\xf7\x1f\xcb\xe7O\x12I\xe3\x9a\xce\xa72\xe9jY\xab\xce\xb9\xd7f\xbd\r\x16\xefEWe.#\x86LALt\xd6"
+        )
+        test_response = await extract_text_api(test_pdf, PDF2TEXT_API_KEY, PDF2TXT_LAMBDA_URL)
         timed_logger.info("Lambda Healthcheck Status request received.")
         return JSONResponse(content={
             "status": "ok",
             "message": "Service is running and can access the PDF extraction API",
-            "pdf_extraction_api": "accessible"
+            "pdf_extraction_api": "accessible",
+            "test_response": test_response
         })
     except Exception as e:
         return JSONResponse(
@@ -60,7 +68,7 @@ async def lambda_status_check():
             }
         )
 
-@app.post("/extract-text/")
+@pdf_splitter_app.post("/extract-text/")
 async def extract_text(file: UploadFile = File(...)) -> JSONResponse:
     """
     Endpoint to extract text from a PDF file using the PDF extraction API.
@@ -89,7 +97,7 @@ async def extract_text(file: UploadFile = File(...)) -> JSONResponse:
         # Process each chunk concurrently
         timed_logger.info("Starting concurrent processing of chunks")
         tasks = [
-            extract_text_api(BytesIO(chunk), PDF2TEXT_API_KEY, PDF2TEXT_URL)
+            extract_text_api(BytesIO(chunk), PDF2TEXT_API_KEY, PDF2TXT_LAMBDA_URL)
             for chunk in chunks
         ]
         results = await asyncio.gather(*tasks)
@@ -130,4 +138,4 @@ def combine_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 if __name__ == "__main__":
     import uvicorn
     timed_logger.info("Starting FastAPI server")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(pdf_splitter_app, host="0.0.0.0", port=8000)

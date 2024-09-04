@@ -2,7 +2,6 @@ import json
 import fitz
 import base64
 import time
-import os
 
 def extract_text_simple(file_bytes):
     doc = fitz.open(stream=file_bytes, filetype="pdf")

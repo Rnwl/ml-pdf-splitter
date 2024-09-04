@@ -9,8 +9,12 @@ pymupdf = "==1.23.7"
 fastapi = "*"
 python-dotenv = "*"
 uvicorn = "*"
+python-multipart = "*"
+ipykernel = "*"
+requests = "*"
 
 [dev-packages]
+ipykernel = "*"
 
 [requires]
 python_version = "3.9"

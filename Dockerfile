@@ -2,7 +2,7 @@ FROM python:3.9.16
 
 WORKDIR /usr/src/app
 
-COPY docker/requirements.txt requirements.txt
+COPY requirements.txt requirements.txt
 
 # Install python packages
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
