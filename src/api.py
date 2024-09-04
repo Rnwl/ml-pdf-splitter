@@ -46,9 +46,14 @@ async def lambda_status_check():
     """
     try:
         # Check if we can access the PDF extraction API
-        test_pdf = BytesIO(
-            b"%PDF-1.7\n%\xc2\xb5\xc2\xb6\n\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n\n2 0 obj\n<</Type/Pages/Count 1/Kids[4 0 R]>>\nendobj\n\n3 0 obj\n<</Font<</helv 5 0 R>>>>\nendobj\n\n4 0 obj\n<</Type/Page/MediaBox[0 0 595 842]/Rotate 0/Resources 3 0 R/Parent 2 0 R/Contents[6 0 R]>>\nendobj\n\n5 0 obj\n<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>\nendobj\n\n6 0 obj\n<</Length 427/Filter/FlateDecode>>\nstream\nx\xda]S\xbbN\xc4@\x0c\xec\xf3\x15[#\x01\xf1f\xd7f\xa5\x13\x05\x82\x86\x0e)\xdd\x89*\x0fQ@A\xc3\xf73\x1e'\xb9\x83;\xe5\x14\xf91\x9e\x19\xfb\xba\xef\xeei\xec$\xf5\xf8J\xb2\x9c\xcc\xfa4~u\xf7\x1f\xcb\xe7O\x12I\xe3\x9a\xce\xa72\xe9jY\xab\xce\xb9\xd7f\xbd\r\x16\xefEWe.#\x86LALt\xd6"
-        )
+        def load_pdf_as_bytes(file_path):
+            with open(file_path, 'rb') as file:
+                return file.read()
+
+        # Usage example
+        pdf_path = 'data/lorem_ipsum.pdf'
+        pdf_bytes = load_pdf_as_bytes(pdf_path)
+        test_pdf = BytesIO(pdf_bytes)
         test_response = await extract_text_api(test_pdf, PDF2TEXT_API_KEY, PDF2TXT_LAMBDA_URL)
         timed_logger.info("Lambda Healthcheck Status request received.")
         return JSONResponse(content={
