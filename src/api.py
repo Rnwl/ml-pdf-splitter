@@ -25,6 +25,7 @@ PDF2TXT_LAMBDA_URL = load_variable("PDF2TXT_LAMBDA_URL", logger=timed_logger)
 CHUNK_SIZE = 10  # Number of pages per chunk
 
 @pdf_splitter_app.get("/status")
+@pdf_splitter_app.get("/")
 async def status_check():
     """
     Simple endpoint to check if the service is running.
