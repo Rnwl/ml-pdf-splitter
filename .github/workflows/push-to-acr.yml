@@ -26,5 +26,5 @@ jobs:
           username: ${{ secrets.AZURE_CLIENT_ID }}
           password: ${{ secrets.AZURE_CLIENT_SECRET }}
       - run: |
-          docker build . -t ${{ secrets.ACR_NAME }}.azurecr.io/service-backend-tester:latest
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/service-backend-tester:latest
+          docker build . -t ${{ secrets.ACR_NAME }}.azurecr.io/ml-pdf-splitter:latest
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/ml-pdf-splitter:latest
