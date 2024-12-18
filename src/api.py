@@ -20,8 +20,8 @@ load_dotenv()  # Load environment variables from .env file
 pdf_splitter_app = FastAPI()
 
 timed_logger = TimedLogger(filename="logs/pdf_splitter.log")
-PDF2TEXT_API_KEY = load_variable("PDF2TEXT_API_KEY", logger=timed_logger)
-PDF2TXT_LAMBDA_URL = load_variable("PDF2TXT_LAMBDA_URL", logger=timed_logger)
+PDF2TXT_API_KEY = load_variable("PDF2TXT_API_KEY", logger=timed_logger)
+PDF2TXT_FUNCTION_URL = load_variable("PDF2TXT_FUNCTION_URL", logger=timed_logger)
 CHUNK_SIZE = 10  # Number of pages per chunk
 
 @pdf_splitter_app.get("/status")
