@@ -55,7 +55,7 @@ async def lambda_status_check():
         pdf_path = 'data/lorem_ipsum.pdf'
         pdf_bytes = load_pdf_as_bytes(pdf_path)
         test_pdf = BytesIO(pdf_bytes)
-        test_response = await extract_text_api(test_pdf, PDF2TEXT_API_KEY, PDF2TXT_LAMBDA_URL)
+        test_response = await extract_text_api(test_pdf, PDF2TXT_API_KEY, PDF2TXT_FUNCTION_URL)
         timed_logger.info("Lambda Healthcheck Status request received.")
         return JSONResponse(content={
             "status": "ok",
@@ -103,7 +103,7 @@ async def extract_text(file: UploadFile = File(...)) -> JSONResponse:
         # Process each chunk concurrently
         timed_logger.info("Starting concurrent processing of chunks")
         tasks = [
-            extract_text_api(BytesIO(chunk), PDF2TEXT_API_KEY, PDF2TXT_LAMBDA_URL)
+            extract_text_api(BytesIO(chunk), PDF2TXT_API_KEY, PDF2TXT_FUNCTION_URL)
             for chunk in chunks
         ]
         results = await asyncio.gather(*tasks)
