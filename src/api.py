@@ -20,7 +20,6 @@ load_dotenv()  # Load environment variables from .env file
 pdf_splitter_app = FastAPI()
 
 timed_logger = TimedLogger(filename="logs/pdf_splitter.log")
-PDF2TXT_API_KEY = load_variable("PDF2TXT_API_KEY", logger=timed_logger)
 PDF2TXT_FUNCTION_URL = load_variable("PDF2TXT_FUNCTION_URL", logger=timed_logger)
 CHUNK_SIZE = 10  # Number of pages per chunk
 
@@ -55,7 +54,7 @@ async def lambda_status_check():
         pdf_path = 'data/lorem_ipsum.pdf'
         pdf_bytes = load_pdf_as_bytes(pdf_path)
         test_pdf = BytesIO(pdf_bytes)
-        test_response = await extract_text_api(test_pdf, PDF2TXT_API_KEY, PDF2TXT_FUNCTION_URL)
+        test_response = await extract_text_api(file_bytes=test_pdf, pdf_extraction_url=PDF2TXT_FUNCTION_URL)
         timed_logger.info("Lambda Healthcheck Status request received.")
         return JSONResponse(content={
             "status": "ok",
@@ -103,7 +102,7 @@ async def extract_text(file: UploadFile = File(...)) -> JSONResponse:
         # Process each chunk concurrently
         timed_logger.info("Starting concurrent processing of chunks")
         tasks = [
-            extract_text_api(BytesIO(chunk), PDF2TXT_API_KEY, PDF2TXT_FUNCTION_URL)
+            extract_text_api(file_bytes=BytesIO(chunk), pdf_extraction_url=PDF2TXT_FUNCTION_URL)
             for chunk in chunks
         ]
         results = await asyncio.gather(*tasks)

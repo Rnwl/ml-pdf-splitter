@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import json
 import logging
 import traceback
 from collections import defaultdict, deque
@@ -9,7 +8,6 @@ from typing import List, AsyncGenerator, Dict, Any
 
 import aiohttp
 import fitz
-import requests
 
 WINDOW_SIZE = 10
 
@@ -72,9 +70,22 @@ class PDFTextExtractionAPI:
                 "pdf_data": base64.b64encode(data).decode("utf-8"),
             }
             async with self.session.post(
-                self.url, json=json.dumps(data)
+                self.url, 
+                json=data,
+                headers={'Content-Type': 'application/json'}
             ) as response:
-                response.raise_for_status()
+                try:
+                    response.raise_for_status()
+                except aiohttp.ClientResponseError as e:
+                    print(f"HTTP Error: {e.status} - {e.message}")
+                    if e.status == 413:  # Payload Too Large
+                        print("PDF file too large for API")
+                    elif e.status == 429:  # Too Many Requests
+                        print("Rate limit exceeded")
+                    elif e.status >= 500:  # Server errors
+                        print("Server error occurred")
+                    return None
+                
                 return await response.json()
         except Exception as e:
             print(f"Error in _fetch: {e}")
@@ -164,7 +175,6 @@ class PDFTextExtractionAPI:
 
 async def extract_text_api(
     file_bytes: BytesIO,
-    api_key: str,
     pdf_extraction_url: str,
 ) -> Dict[str, Any]:
     """
@@ -172,7 +182,6 @@ async def extract_text_api(
 
     Args:
         file_bytes (BytesIO): BytesIO object containing the PDF file.
-        api_key (str): API key for authentication.
         pdf_extraction_url (str): URL of the API Gateway for PDF2Txt.
 
     Returns:
