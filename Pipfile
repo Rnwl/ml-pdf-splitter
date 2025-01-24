@@ -12,6 +12,8 @@ uvicorn = "*"
 python-multipart = "*"
 ipykernel = "*"
 requests = "*"
+appnope = "*"
+tornado = "*"
 
 [dev-packages]
 ipykernel = "*"

@@ -9,6 +9,7 @@ from typing import List, AsyncGenerator, Dict, Any
 
 import aiohttp
 import fitz
+import requests
 
 WINDOW_SIZE = 10
 
@@ -47,21 +48,18 @@ class PDFTextExtractionAPI:
     manages the workload, and processes the results of text extraction.
     """
 
-    def __init__(self, url: str, api_key: str, concurrency_limit: int = 500, window_size: int = WINDOW_SIZE):
+    def __init__(self, url: str, concurrency_limit: int = 500, window_size: int = WINDOW_SIZE):
         """
         Initialize the PDFTextExtractionAPI class.
 
         Args:
             url (str): The URL of the PDF extraction API.
-            api_key (str): The API key for authentication.
             concurrency_limit (int): Maximum number of concurrent API calls. Defaults to 500.
             window_size (int): Number of pages per PDF chunk. Defaults to WINDOW_SIZE.
         """
         self.url = url
         assert self.url is not None, "URL not set"
         self.concurrency_limit = concurrency_limit
-        self.api_key = api_key
-        assert self.api_key is not None, "API key not set"
         self.session = None
         self.pending = dict()
         self.queue = deque()
@@ -73,9 +71,8 @@ class PDFTextExtractionAPI:
             data = {
                 "pdf_data": base64.b64encode(data).decode("utf-8"),
             }
-            headers = {"x-api-key": self.api_key}
             async with self.session.post(
-                self.url, headers=headers, json=json.dumps(data)
+                self.url, json=json.dumps(data)
             ) as response:
                 response.raise_for_status()
                 return await response.json()
@@ -182,6 +179,6 @@ async def extract_text_api(
         Dict[str, Any]: Extracted text results, including metadata.
     """
     print(f"Extract Text API Function. URL: {pdf_extraction_url} | API Key: {api_key}")
-    api = PDFTextExtractionAPI(url=pdf_extraction_url, api_key=api_key)
+    api = PDFTextExtractionAPI(url=pdf_extraction_url)
     results = await api.extract(file_bytes)
     return results
