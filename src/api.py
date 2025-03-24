@@ -1,8 +1,9 @@
 import asyncio
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, Security
 from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
 from io import BytesIO
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 
 try:
@@ -17,15 +18,43 @@ except:
 
 load_dotenv()  # Load environment variables from .env file
 
-pdf_splitter_app = FastAPI()
+pdf_splitter_app = FastAPI(
+    title="PDF Splitter API",
+    description="API for splitting and processing PDF files",
+    version="1.0.0"
+)
 
 timed_logger = TimedLogger(filename="logs/pdf_splitter.log")
 PDF2TXT_FUNCTION_URL = load_variable("PDF2TXT_FUNCTION_URL", logger=timed_logger)
+API_KEY = load_variable("API_KEY", logger=timed_logger)
 CHUNK_SIZE = 10  # Number of pages per chunk
+
+# Create an API key header scheme
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=True)
+
+async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
+    """
+    Dependency function to verify the API key.
+    
+    Args:
+        api_key (str): The API key from the X-API-Key header.
+        
+    Returns:
+        str: The verified API key.
+        
+    Raises:
+        HTTPException: If the API key is missing or invalid.
+    """
+    if api_key != API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid API key"
+        )
+    return api_key
 
 @pdf_splitter_app.get("/status")
 @pdf_splitter_app.get("/")
-async def status_check():
+async def status_check(api_key: str = Depends(verify_api_key)):
     """
     Simple endpoint to check if the service is running.
 
@@ -37,7 +66,7 @@ async def status_check():
 
 
 @pdf_splitter_app.get("/lambda_status")
-async def lambda_status_check():
+async def lambda_status_check(api_key: str = Depends(verify_api_key)):
     """
     Endpoint to check the status of the service.
 
@@ -74,12 +103,16 @@ async def lambda_status_check():
         )
 
 @pdf_splitter_app.post("/extract-text/")
-async def extract_text(file: UploadFile = File(...)) -> JSONResponse:
+async def extract_text(
+    file: UploadFile = File(...),
+    api_key: str = Depends(verify_api_key)
+) -> JSONResponse:
     """
     Endpoint to extract text from a PDF file using the PDF extraction API.
 
     Args:
         file (UploadFile): The uploaded PDF file.
+        api_key (str): The verified API key.
 
     Returns:
         JSONResponse: The extracted text results.

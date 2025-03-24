@@ -187,7 +187,7 @@ async def extract_text_api(
     Returns:
         Dict[str, Any]: Extracted text results, including metadata.
     """
-    print(f"Extract Text API Function. URL: {pdf_extraction_url} | API Key: {api_key}")
+    print(f"Extract Text API Function. URL: {pdf_extraction_url}")
     api = PDFTextExtractionAPI(url=pdf_extraction_url)
     results = await api.extract(file_bytes)
     return results
