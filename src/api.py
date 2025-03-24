@@ -26,10 +26,10 @@ pdf_splitter_app = FastAPI(
 
 timed_logger = TimedLogger(filename="logs/pdf_splitter.log")
 PDF2TXT_FUNCTION_URL = load_variable("PDF2TXT_FUNCTION_URL", logger=timed_logger)
-API_KEY = load_variable("API_KEY", logger=timed_logger)
+PDF_SPLITTER_API_KEY = load_variable("PDF_SPLITTER_API_KEY", logger=timed_logger)
 CHUNK_SIZE = 10  # Number of pages per chunk
 
-# Create an API key header scheme
+# Create an API key header schemex
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=True)
 
 async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
@@ -45,7 +45,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
     Raises:
         HTTPException: If the API key is missing or invalid.
     """
-    if api_key != API_KEY:
+    if api_key != PDF_SPLITTER_API_KEY:
         raise HTTPException(
             status_code=403,
             detail="Invalid API key"
