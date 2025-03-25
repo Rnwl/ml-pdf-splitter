@@ -65,8 +65,8 @@ async def status_check(api_key: str = Depends(verify_api_key)):
     return JSONResponse(content={"status": "OK"})
 
 
-@pdf_splitter_app.get("/lambda_status")
-async def lambda_status_check(api_key: str = Depends(verify_api_key)):
+@pdf_splitter_app.get("/function_status")
+async def function_status_check(api_key: str = Depends(verify_api_key)):
     """
     Endpoint to check the status of the service.
 
@@ -84,7 +84,7 @@ async def lambda_status_check(api_key: str = Depends(verify_api_key)):
         pdf_bytes = load_pdf_as_bytes(pdf_path)
         test_pdf = BytesIO(pdf_bytes)
         test_response = await extract_text_api(file_bytes=test_pdf, pdf_extraction_url=PDF2TXT_FUNCTION_URL)
-        timed_logger.info("Lambda Healthcheck Status request received.")
+        timed_logger.info("Function Healthcheck Status request received.")
         return JSONResponse(content={
             "status": "ok",
             "message": "Service is running and can access the PDF extraction API",
