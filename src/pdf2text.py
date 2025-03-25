@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import json
 import logging
 import traceback
 from collections import defaultdict, deque
@@ -47,21 +46,18 @@ class PDFTextExtractionAPI:
     manages the workload, and processes the results of text extraction.
     """
 
-    def __init__(self, url: str, api_key: str, concurrency_limit: int = 500, window_size: int = WINDOW_SIZE):
+    def __init__(self, url: str, concurrency_limit: int = 500, window_size: int = WINDOW_SIZE):
         """
         Initialize the PDFTextExtractionAPI class.
 
         Args:
             url (str): The URL of the PDF extraction API.
-            api_key (str): The API key for authentication.
             concurrency_limit (int): Maximum number of concurrent API calls. Defaults to 500.
             window_size (int): Number of pages per PDF chunk. Defaults to WINDOW_SIZE.
         """
         self.url = url
         assert self.url is not None, "URL not set"
         self.concurrency_limit = concurrency_limit
-        self.api_key = api_key
-        assert self.api_key is not None, "API key not set"
         self.session = None
         self.pending = dict()
         self.queue = deque()
@@ -73,11 +69,23 @@ class PDFTextExtractionAPI:
             data = {
                 "pdf_data": base64.b64encode(data).decode("utf-8"),
             }
-            headers = {"x-api-key": self.api_key}
             async with self.session.post(
-                self.url, headers=headers, json=json.dumps(data)
+                self.url, 
+                json=data,
+                headers={'Content-Type': 'application/json'}
             ) as response:
-                response.raise_for_status()
+                try:
+                    response.raise_for_status()
+                except aiohttp.ClientResponseError as e:
+                    print(f"HTTP Error: {e.status} - {e.message}")
+                    if e.status == 413:  # Payload Too Large
+                        print("PDF file too large for API")
+                    elif e.status == 429:  # Too Many Requests
+                        print("Rate limit exceeded")
+                    elif e.status >= 500:  # Server errors
+                        print("Server error occurred")
+                    return None
+                
                 return await response.json()
         except Exception as e:
             print(f"Error in _fetch: {e}")
@@ -138,8 +146,6 @@ class PDFTextExtractionAPI:
                         yield {
                             "stage": result["stage"],
                             "time_taken": result["time_taken"],
-                            "arn_version": result["arn_version"],
-                            "function_version": result["function_version"],
                             "pdf_id": pdf_id,
                             "text": "\n\n".join(
                                 [
@@ -167,7 +173,6 @@ class PDFTextExtractionAPI:
 
 async def extract_text_api(
     file_bytes: BytesIO,
-    api_key: str,
     pdf_extraction_url: str,
 ) -> Dict[str, Any]:
     """
@@ -175,13 +180,12 @@ async def extract_text_api(
 
     Args:
         file_bytes (BytesIO): BytesIO object containing the PDF file.
-        api_key (str): API key for authentication.
         pdf_extraction_url (str): URL of the API Gateway for PDF2Txt.
 
     Returns:
         Dict[str, Any]: Extracted text results, including metadata.
     """
-    print(f"Extract Text API Function. URL: {pdf_extraction_url} | API Key: {api_key}")
-    api = PDFTextExtractionAPI(url=pdf_extraction_url, api_key=api_key)
+    print(f"Extract Text API Function. URL: {pdf_extraction_url}")
+    api = PDFTextExtractionAPI(url=pdf_extraction_url)
     results = await api.extract(file_bytes)
     return results

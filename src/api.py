@@ -1,8 +1,9 @@
 import asyncio
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, Security
 from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
 from io import BytesIO
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 
 try:
@@ -17,16 +18,43 @@ except:
 
 load_dotenv()  # Load environment variables from .env file
 
-pdf_splitter_app = FastAPI()
+pdf_splitter_app = FastAPI(
+    title="PDF Splitter API",
+    description="API for splitting and processing PDF files",
+    version="1.0.0"
+)
 
 timed_logger = TimedLogger(filename="logs/pdf_splitter.log")
-PDF2TEXT_API_KEY = load_variable("PDF2TEXT_API_KEY", logger=timed_logger)
-PDF2TXT_LAMBDA_URL = load_variable("PDF2TXT_LAMBDA_URL", logger=timed_logger)
+PDF2TXT_FUNCTION_URL = load_variable("PDF2TXT_FUNCTION_URL", logger=timed_logger)
+PDF_SPLITTER_API_KEY = load_variable("PDF_SPLITTER_API_KEY", logger=timed_logger)
 CHUNK_SIZE = 10  # Number of pages per chunk
+
+# Create an API key header schemex
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=True)
+
+async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
+    """
+    Dependency function to verify the API key.
+    
+    Args:
+        api_key (str): The API key from the X-API-Key header.
+        
+    Returns:
+        str: The verified API key.
+        
+    Raises:
+        HTTPException: If the API key is missing or invalid.
+    """
+    if api_key != PDF_SPLITTER_API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid API key"
+        )
+    return api_key
 
 @pdf_splitter_app.get("/status")
 @pdf_splitter_app.get("/")
-async def status_check():
+async def status_check(api_key: str = Depends(verify_api_key)):
     """
     Simple endpoint to check if the service is running.
 
@@ -37,8 +65,8 @@ async def status_check():
     return JSONResponse(content={"status": "OK"})
 
 
-@pdf_splitter_app.get("/lambda_status")
-async def lambda_status_check():
+@pdf_splitter_app.get("/function_status")
+async def function_status_check(api_key: str = Depends(verify_api_key)):
     """
     Endpoint to check the status of the service.
 
@@ -55,8 +83,8 @@ async def lambda_status_check():
         pdf_path = 'data/lorem_ipsum.pdf'
         pdf_bytes = load_pdf_as_bytes(pdf_path)
         test_pdf = BytesIO(pdf_bytes)
-        test_response = await extract_text_api(test_pdf, PDF2TEXT_API_KEY, PDF2TXT_LAMBDA_URL)
-        timed_logger.info("Lambda Healthcheck Status request received.")
+        test_response = await extract_text_api(file_bytes=test_pdf, pdf_extraction_url=PDF2TXT_FUNCTION_URL)
+        timed_logger.info("Function Healthcheck Status request received.")
         return JSONResponse(content={
             "status": "ok",
             "message": "Service is running and can access the PDF extraction API",
@@ -75,12 +103,16 @@ async def lambda_status_check():
         )
 
 @pdf_splitter_app.post("/extract-text/")
-async def extract_text(file: UploadFile = File(...)) -> JSONResponse:
+async def extract_text(
+    file: UploadFile = File(...),
+    api_key: str = Depends(verify_api_key)
+) -> JSONResponse:
     """
     Endpoint to extract text from a PDF file using the PDF extraction API.
 
     Args:
         file (UploadFile): The uploaded PDF file.
+        api_key (str): The verified API key.
 
     Returns:
         JSONResponse: The extracted text results.
@@ -103,7 +135,7 @@ async def extract_text(file: UploadFile = File(...)) -> JSONResponse:
         # Process each chunk concurrently
         timed_logger.info("Starting concurrent processing of chunks")
         tasks = [
-            extract_text_api(BytesIO(chunk), PDF2TEXT_API_KEY, PDF2TXT_LAMBDA_URL)
+            extract_text_api(file_bytes=BytesIO(chunk), pdf_extraction_url=PDF2TXT_FUNCTION_URL)
             for chunk in chunks
         ]
         results = await asyncio.gather(*tasks)
