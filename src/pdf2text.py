@@ -146,8 +146,6 @@ class PDFTextExtractionAPI:
                         yield {
                             "stage": result["stage"],
                             "time_taken": result["time_taken"],
-                            "arn_version": result["arn_version"],
-                            "function_version": result["function_version"],
                             "pdf_id": pdf_id,
                             "text": "\n\n".join(
                                 [
