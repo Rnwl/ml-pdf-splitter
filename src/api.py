@@ -102,7 +102,7 @@ async def function_status_check(api_key: str = Depends(verify_api_key)):
             }
         )
 
-@pdf_splitter_app.post("/extract-text/")
+@pdf_splitter_app.post("/extract_text/")
 async def extract_text(
     file: UploadFile = File(...),
     api_key: str = Depends(verify_api_key)
