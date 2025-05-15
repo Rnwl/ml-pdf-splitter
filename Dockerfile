@@ -1,4 +1,6 @@
-FROM python:3.9.16
+# FROM python:3.9.16
+
+FROM rnwlcontainerregistryexplore.azurecr.io/python:3.9.16
 
 WORKDIR /usr/src/app
 
