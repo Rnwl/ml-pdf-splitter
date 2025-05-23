@@ -7,6 +7,5 @@ venv/
 .env
 *.ipynb
 notebooks/
-data/
 logs/
 packages-microsoft-prod.deb
