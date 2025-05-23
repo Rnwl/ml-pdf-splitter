@@ -1,0 +1,126 @@
+openapi: 3.0.3
+info:
+  title: PDF Splitter API
+  description: API for splitting PDF files into chunks and extracting text using an external extraction service.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5006
+    description: Local development server
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+security:
+  - ApiKeyAuth: []
+paths:
+  /status:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                example:
+                  status: OK
+  /:
+    get:
+      summary: Health check (alias of /status)
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                example:
+                  status: OK
+  /function_status:
+    get:
+      summary: Check the status of the extraction service
+      responses:
+        '200':
+          description: Extraction service is reachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  pdf_extraction_api:
+                    type: string
+                  test_response:
+                    type: object
+        '503':
+          description: Extraction service is unreachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  pdf_extraction_api:
+                    type: string
+                  error:
+                    type: string
+  /extract_text/:
+    post:
+      summary: Extract text from a PDF
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Text extraction succeeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    type: object
+                  text:
+                    type: string
+                  page_count:
+                    type: integer
+        '400':
+          description: Invalid file supplied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+        '500':
+          description: Server error during processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
