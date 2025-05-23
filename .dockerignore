@@ -1,0 +1,11 @@
+.git
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+*.ipynb
+notebooks/
+logs/
+packages-microsoft-prod.deb

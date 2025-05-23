@@ -6,4 +6,4 @@ services:
     ports:
      - "5006:5006"
     volumes:
-     - ./docker/logs:/usr/src/app/logs
+     - ./logs:/usr/src/app/logs

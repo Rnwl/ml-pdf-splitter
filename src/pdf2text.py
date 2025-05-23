@@ -9,9 +9,14 @@ from typing import List, AsyncGenerator, Dict, Any
 import aiohttp
 import fitz
 
+try:
+    from timed_logger import TimedLogger
+except ModuleNotFoundError:
+    from src.timed_logger import TimedLogger
+
 WINDOW_SIZE = 10
 
-logger = logging.getLogger(__name__)
+logger = TimedLogger(filename="logs/pdf2text.log")
 
 
 def split_pdf_bytes(file_bytes, window_size: int = WINDOW_SIZE):
@@ -77,19 +82,19 @@ class PDFTextExtractionAPI:
                 try:
                     response.raise_for_status()
                 except aiohttp.ClientResponseError as e:
-                    print(f"HTTP Error: {e.status} - {e.message}")
+                    logger.error(f"HTTP Error: {e.status} - {e.message}")
                     if e.status == 413:  # Payload Too Large
-                        print("PDF file too large for API")
+                        logger.error("PDF file too large for API")
                     elif e.status == 429:  # Too Many Requests
-                        print("Rate limit exceeded")
+                        logger.error("Rate limit exceeded")
                     elif e.status >= 500:  # Server errors
-                        print("Server error occurred")
+                        logger.error("Server error occurred")
                     return None
                 
                 return await response.json()
         except Exception as e:
-            print(f"Error in _fetch: {e}")
-            print(traceback.format_exc())
+            logger.error(f"Error in _fetch: {e}")
+            logger.error(traceback.format_exc())
             return None
 
     async def submit_work(self, data, *args):
@@ -122,40 +127,41 @@ class PDFTextExtractionAPI:
         Yields:
             Dict[str, Any]: Extraction results for each PDF, including metadata and extracted text.
         """
-        self.session = aiohttp.ClientSession()
-        await self.init_workload(files)
+        async with aiohttp.ClientSession() as session:
+            self.session = session
+            await self.init_workload(files)
 
-        # Get all the text results
-        text_results = defaultdict(dict)
-        try:
-            while self.pending:
-                done, _ = await asyncio.wait(
-                    self.pending, return_when=asyncio.FIRST_COMPLETED
-                )
-                future = list(done)[0]
-                pdf_id, part_id = self.pending.pop(future)
-                result = await future
-                if result:
-                    text_result = result.get("text", "")
-                    self.part_counts[pdf_id] -= 1
+            # Get all the text results
+            text_results = defaultdict(dict)
+            try:
+                while self.pending:
+                    done, _ = await asyncio.wait(
+                        self.pending, return_when=asyncio.FIRST_COMPLETED
+                    )
+                    future = list(done)[0]
+                    pdf_id, part_id = self.pending.pop(future)
+                    result = await future
+                    if result:
+                        text_result = result.get("text", "")
+                        self.part_counts[pdf_id] -= 1
 
-                    self.schedule_work()
+                        self.schedule_work()
 
-                    text_results[pdf_id][part_id] = text_result
-                    if self.part_counts[pdf_id] == 0:
-                        yield {
-                            "stage": result["stage"],
-                            "time_taken": result["time_taken"],
-                            "pdf_id": pdf_id,
-                            "text": "\n\n".join(
-                                [
-                                    text_results[pdf_id][i]
-                                    for i in range(len(text_results[pdf_id]))
-                                ]
-                            ),
-                        }
-        finally:
-            await self.session.close()
+                        text_results[pdf_id][part_id] = text_result
+                        if self.part_counts[pdf_id] == 0:
+                            yield {
+                                "stage": result["stage"],
+                                "time_taken": result["time_taken"],
+                                "pdf_id": pdf_id,
+                                "text": "\n\n".join(
+                                    [
+                                        text_results[pdf_id][i]
+                                        for i in range(len(text_results[pdf_id]))
+                                    ]
+                                ),
+                            }
+            finally:
+                self.session = None
 
     async def extract(self, file: bytes) -> Dict[str, Any]:
         """
@@ -185,7 +191,7 @@ async def extract_text_api(
     Returns:
         Dict[str, Any]: Extracted text results, including metadata.
     """
-    print(f"Extract Text API Function. URL: {pdf_extraction_url}")
+    logger.info(f"Extract Text API Function. URL: {pdf_extraction_url}")
     api = PDFTextExtractionAPI(url=pdf_extraction_url)
     results = await api.extract(file_bytes)
     return results

@@ -1,26 +1,28 @@
 import time
 import logging
+import os
 import sys
 import traceback
 
 class TimedLogger:
     def __init__(self,
-                filename: str,
+                filename: str = None,
                 format: str = "%(asctime)s [%(levelname)s]: %(message)s in %(pathname)s:%(lineno)d",
                 datefmt: str = "%Y-%m-%d %H:%M:%S",
-                ):
-    
-        file_handler = logging.FileHandler(filename=filename)
+                name: str = __name__):
+
         stdout_handler = logging.StreamHandler(stream=sys.stdout)
-        handlers = [file_handler, stdout_handler]
+        handlers = [stdout_handler]
+        if filename and os.getenv("ENABLE_FILE_LOGS", "false").lower() == "true":
+            handlers.append(logging.FileHandler(filename=filename))
         logging.basicConfig(
             level=logging.INFO,
             format=format,
             datefmt=datefmt,
             handlers=handlers,
         )
-        self.logger = logging.getLogger(__name__)
-        self.logger.info(f"\n\n\n\n\n\n\n {'<' * 40} Logger setup & working for name: {__name__}{'>' * 40}")
+        self.logger = logging.getLogger(name)
+        self.logger.info(f"Logger initialised for {name}")
         self.start_time = time.time()
         self.function_starts = {}
         self.function_times = {}
