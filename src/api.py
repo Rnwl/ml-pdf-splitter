@@ -29,7 +29,7 @@ PDF2TXT_FUNCTION_URL = load_variable("PDF2TXT_FUNCTION_URL", logger=timed_logger
 PDF_SPLITTER_API_KEY = load_variable("PDF_SPLITTER_API_KEY", logger=timed_logger)
 CHUNK_SIZE = 10  # Number of pages per chunk
 
-# Create an API key header schemex
+# Create an API key header scheme
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=True)
 
 async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
@@ -151,7 +151,7 @@ async def extract_text(
         timed_logger.error(f"Error processing file {file.filename}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def combine_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
+def combine_results(results: List[Optional[Dict[str, Any]]]) -> Dict[str, Any]:
     """
     Combine results from multiple API calls into a single result.
 
@@ -161,16 +161,22 @@ def combine_results(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Combined results.
     """
+    filtered_results = [r for r in results if r is not None]
+    dropped = len(results) - len(filtered_results)
+    if dropped:
+        timed_logger.warning(f"Dropped {dropped} empty chunk results")
+    if not filtered_results:
+        timed_logger.error("All PDF extraction requests failed")
+        raise HTTPException(status_code=502, detail="PDF extraction failed for all chunks")
+
     combined = {
-        "metadata": results[0].get("metadata", {}),
+        "metadata": filtered_results[0].get("metadata", {}),
         "text": "",
-        "page_count": sum(result.get("page_count", 0) for result in results),
+        "page_count": sum(result.get("page_count", 0) for result in filtered_results),
     }
-
-    for result in results:
+    for result in filtered_results:
         combined["text"] += result.get("text", "")
-
-    timed_logger.info(f"Combined results: {len(results)} chunks, {combined['page_count']} pages")
+    timed_logger.info(f"Combined results: {len(filtered_results)} chunks, {combined['page_count']} pages")
     return combined
 
 if __name__ == "__main__":
