@@ -167,3 +167,4 @@ cython_debug/
 .env
 .vscode
 packages-microsoft-prod.deb
+notebooks/test_service.ipynb
